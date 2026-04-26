@@ -115,4 +115,21 @@ const deleteTask = async (req, res) => {
   }
 };
 
-module.exports = { getTasks, createTask, updateTask, updateTaskStatus, deleteTask };
+const getMyTasks = async (req, res) => {
+  try {
+    const supabase = getServiceClient();
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('assignee_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ tasks: data });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { getTasks, createTask, updateTask, updateTaskStatus, deleteTask, getMyTasks };

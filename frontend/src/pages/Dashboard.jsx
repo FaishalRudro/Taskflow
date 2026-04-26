@@ -50,6 +50,12 @@ export default function Dashboard() {
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-blue-600">TaskFlow</h1>
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/my-tasks')}
+            className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-100"
+          >
+            My Tasks
+          </button>
           <span className="text-sm text-gray-600">Hello, {user?.name}</span>
           <button onClick={handleLogout} className="text-sm text-red-500 hover:underline">Logout</button>
         </div>

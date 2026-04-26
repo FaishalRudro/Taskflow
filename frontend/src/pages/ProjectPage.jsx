@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import TaskModal from '../components/TaskModal';
 
@@ -20,10 +21,11 @@ const STATUS_COLORS = {
 export default function ProjectPage() {
   const { projectId } = useParams();
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' });
+  const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium', assignee_id: '' });
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,9 +47,13 @@ export default function ProjectPage() {
     e.preventDefault();
     setCreating(true);
     try {
-      const res = await api.post(`/projects/${projectId}/tasks`, newTask);
+      const taskData = {
+        ...newTask,
+        assignee_id: newTask.assignee_id || user.id
+      };
+      const res = await api.post(`/projects/${projectId}/tasks`, taskData);
       setTasks([...tasks, res.data.task]);
-      setNewTask({ title: '', description: '', priority: 'medium' });
+      setNewTask({ title: '', description: '', priority: 'medium', assignee_id: '' });
     } catch (err) {
       console.error(err);
     } finally {
@@ -80,21 +86,26 @@ export default function ProjectPage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-blue-600">TaskFlow</h1>
-        <button onClick={() => navigate(-1)} className="text-sm text-gray-600 hover:underline">
-          ← Back
-        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/my-tasks')} className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-lg hover:bg-blue-100">
+            My Tasks
+          </button>
+          <button onClick={() => navigate(-1)} className="text-sm text-gray-600 hover:underline">
+            ← Back
+          </button>
+        </div>
       </nav>
 
       <div className="max-w-7xl mx-auto p-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Kanban Board</h2>
 
-        <form onSubmit={createTask} className="bg-white p-4 rounded-xl shadow-sm mb-6 flex gap-3">
+        <form onSubmit={createTask} className="bg-white p-4 rounded-xl shadow-sm mb-6 flex gap-3 flex-wrap">
           <input
             type="text"
             placeholder="Task title"
             value={newTask.title}
             onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-40 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
           <input
@@ -102,7 +113,7 @@ export default function ProjectPage() {
             placeholder="Description (optional)"
             value={newTask.description}
             onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-40 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <select
             value={newTask.priority}
@@ -153,21 +164,26 @@ export default function ProjectPage() {
                         }`}>
                           {task.priority}
                         </span>
-                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                          {status !== 'done' && (
-                            <button
-                              onClick={() => updateStatus(task.id, STATUSES[STATUSES.indexOf(status) + 1])}
-                              className="text-xs text-blue-600 hover:underline"
-                            >
-                              →
-                            </button>
+                        <div className="flex gap-1 items-center">
+                          {task.assignee_id === user?.id && (
+                            <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">Me</span>
                           )}
-                          <button
-                            onClick={() => deleteTask(task.id)}
-                            className="text-xs text-red-500 hover:underline"
-                          >
-                            ✕
-                          </button>
+                          <div onClick={(e) => e.stopPropagation()} className="flex gap-1">
+                            {status !== 'done' && (
+                              <button
+                                onClick={() => updateStatus(task.id, STATUSES[STATUSES.indexOf(status) + 1])}
+                                className="text-xs text-blue-600 hover:underline"
+                              >
+                                →
+                              </button>
+                            )}
+                            <button
+                              onClick={() => deleteTask(task.id)}
+                              className="text-xs text-red-500 hover:underline"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import WorkspacePage from './pages/WorkspacePage';
 import ProjectPage from './pages/ProjectPage';
+import MyTasks from './pages/MyTasks';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -22,6 +23,7 @@ function App() {
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
           <Route path="/project/:projectId" element={<PrivateRoute><ProjectPage /></PrivateRoute>} />
+          <Route path="/my-tasks" element={<PrivateRoute><MyTasks /></PrivateRoute>} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
