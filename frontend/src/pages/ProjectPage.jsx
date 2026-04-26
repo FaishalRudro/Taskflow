@@ -32,7 +32,7 @@ export default function ProjectPage() {
 
   useEffect(() => {
     fetchTasks();
-    if (isAdmin) fetchUsers();
+    fetchUsers();
   }, [projectId]);
 
   const fetchTasks = async () => {

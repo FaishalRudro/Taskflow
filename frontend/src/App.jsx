@@ -13,6 +13,13 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
+const HomeRedirect = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!user) return <Navigate to="/login" />;
+  return user.role === 'admin' ? <Navigate to="/dashboard" /> : <Navigate to="/my-tasks" />;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -20,11 +27,12 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/" element={<HomeRedirect />} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/workspace/:workspaceId" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
           <Route path="/project/:projectId" element={<PrivateRoute><ProjectPage /></PrivateRoute>} />
           <Route path="/my-tasks" element={<PrivateRoute><MyTasks /></PrivateRoute>} />
-          <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="*" element={<HomeRedirect />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

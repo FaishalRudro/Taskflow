@@ -1,11 +1,25 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
+
+const STATUSES = ['todo', 'in_progress', 'in_review', 'done'];
+const STATUS_LABELS = {
+  todo: 'To Do',
+  in_progress: 'In Progress',
+  in_review: 'In Review',
+  done: 'Done'
+};
 
 export default function TaskModal({ task, onClose, onUpdate }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState(task.status);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const { user } = useAuth();
+
+  const canChangeStatus = task.assignee_id === user?.id || user?.role === 'admin';
 
   useEffect(() => {
     fetchComments();
@@ -46,6 +60,20 @@ export default function TaskModal({ task, onClose, onUpdate }) {
     }
   };
 
+  const updateStatus = async (newStatus) => {
+    if (!canChangeStatus) return;
+    setUpdatingStatus(true);
+    try {
+      await api.patch(`/tasks/${task.id}/status`, { status: newStatus });
+      setCurrentStatus(newStatus);
+      onUpdate({ ...task, status: newStatus });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
@@ -60,9 +88,6 @@ export default function TaskModal({ task, onClose, onUpdate }) {
                   'bg-green-200 text-green-700'
                 }`}>
                   {task.priority}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                  {task.status.replace('_', ' ')}
                 </span>
               </div>
             </div>
@@ -79,6 +104,32 @@ export default function TaskModal({ task, onClose, onUpdate }) {
             </p>
           )}
 
+          {/* Status Update Section */}
+          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Status</p>
+            <div className="flex gap-2 flex-wrap">
+              {STATUSES.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => canChangeStatus && updateStatus(s)}
+                  disabled={updatingStatus || !canChangeStatus}
+                  className={`text-xs px-3 py-1 rounded-full border transition ${
+                    currentStatus === s
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : canChangeStatus
+                        ? 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100 cursor-pointer'
+                        : 'bg-white text-gray-400 border-gray-200 cursor-not-allowed'
+                  }`}
+                >
+                  {STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+            {!canChangeStatus && (
+              <p className="text-xs text-gray-400 mt-2">Only the assignee can change status</p>
+            )}
+          </div>
+
           <hr className="my-4" />
 
           <h3 className="font-semibold text-gray-700 mb-3">Comments ({comments.length})</h3>
@@ -93,12 +144,14 @@ export default function TaskModal({ task, onClose, onUpdate }) {
                 <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
                   <div className="flex justify-between items-start">
                     <p className="text-sm text-gray-800">{comment.content}</p>
-                    <button
-                      onClick={() => deleteComment(comment.id)}
-                      className="text-xs text-red-400 hover:text-red-600 ml-2"
-                    >
-                      ✕
-                    </button>
+                    {comment.user_id === user?.id && (
+                      <button
+                        onClick={() => deleteComment(comment.id)}
+                        className="text-xs text-red-400 hover:text-red-600 ml-2"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
                     {new Date(comment.created_at).toLocaleString()}
