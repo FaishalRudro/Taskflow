@@ -10,16 +10,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check route
+// Routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'TaskFlow API is running' });
 });
-
-// Routes (পরে যোগ করব)
-// app.use('/api/auth', authRoutes);
-// app.use('/api/workspaces', workspaceRoutes);
-// app.use('/api/projects', projectRoutes);
-// app.use('/api/tasks', taskRoutes);
 
 const PORT = process.env.PORT || 5000;
 
