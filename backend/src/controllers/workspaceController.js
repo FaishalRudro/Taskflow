@@ -84,4 +84,42 @@ const deleteWorkspace = async (req, res) => {
   }
 };
 
-module.exports = { getWorkspaces, createWorkspace, updateWorkspace, deleteWorkspace };
+const getMembers = async (req, res) => {
+  try {
+    const supabase = getServiceClient();
+    const { id } = req.params;
+
+    const { data, error } = await supabase
+      .from('workspace_members')
+      .select('*')
+      .eq('workspace_id', id);
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ members: data });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+const addMember = async (req, res) => {
+  try {
+    const supabase = getServiceClient();
+    const { id } = req.params;
+    const { user_id, role } = req.body;
+
+    if (!user_id) return res.status(400).json({ error: 'User ID required' });
+
+    const { data, error } = await supabase
+      .from('workspace_members')
+      .insert({ workspace_id: id, user_id, role: role || 'member' })
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json({ message: 'Member added', member: data });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { getWorkspaces, createWorkspace, updateWorkspace, deleteWorkspace, getMembers, addMember };

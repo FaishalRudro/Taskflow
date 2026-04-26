@@ -21,15 +21,18 @@ const STATUS_COLORS = {
 export default function ProjectPage() {
   const { projectId } = useParams();
   const [tasks, setTasks] = useState([]);
+  const [users, setUsers] = useState([]);
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium', assignee_id: '' });
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     fetchTasks();
+    if (isAdmin) fetchUsers();
   }, [projectId]);
 
   const fetchTasks = async () => {
@@ -40,6 +43,15 @@ export default function ProjectPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/auth/users');
+      setUsers(res.data.users);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -82,6 +94,13 @@ export default function ProjectPage() {
 
   const getTasksByStatus = (status) => tasks.filter(t => t.status === status);
 
+  const getUserName = (assigneeId) => {
+    if (!assigneeId) return null;
+    if (assigneeId === user?.id) return 'Me';
+    const found = users.find(u => u.id === assigneeId);
+    return found ? found.name : 'Assigned';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
@@ -97,41 +116,60 @@ export default function ProjectPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Kanban Board</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Kanban Board</h2>
+          {isAdmin && (
+            <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Admin</span>
+          )}
+        </div>
 
-        <form onSubmit={createTask} className="bg-white p-4 rounded-xl shadow-sm mb-6 flex gap-3 flex-wrap">
-          <input
-            type="text"
-            placeholder="Task title"
-            value={newTask.title}
-            onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-            className="flex-1 min-w-40 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Description (optional)"
-            value={newTask.description}
-            onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-            className="flex-1 min-w-40 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <select
-            value={newTask.priority}
-            onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-          <button
-            type="submit"
-            disabled={creating}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {creating ? 'Adding...' : '+ Add Task'}
-          </button>
-        </form>
+        {isAdmin && (
+          <form onSubmit={createTask} className="bg-white p-4 rounded-xl shadow-sm mb-6 flex gap-3 flex-wrap">
+            <input
+              type="text"
+              placeholder="Task title"
+              value={newTask.title}
+              onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+              className="flex-1 min-w-40 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Description (optional)"
+              value={newTask.description}
+              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+              className="flex-1 min-w-40 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={newTask.priority}
+              onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            <select
+              value={newTask.assignee_id}
+              onChange={(e) => setNewTask({ ...newTask, assignee_id: e.target.value })}
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Assign to: Me</option>
+              {users.filter(u => u.id !== user?.id).map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.email})
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              disabled={creating}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {creating ? 'Adding...' : '+ Add Task'}
+            </button>
+          </form>
+        )}
 
         {loading ? (
           <p className="text-gray-500">Loading...</p>
@@ -156,6 +194,11 @@ export default function ProjectPage() {
                       {task.description && (
                         <p className="text-xs text-gray-500 mt-1 truncate">{task.description}</p>
                       )}
+                      {task.assignee_id && (
+                        <p className="text-xs text-purple-600 mt-1">
+                          👤 {getUserName(task.assignee_id)}
+                        </p>
+                      )}
                       <div className="flex justify-between items-center mt-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           task.priority === 'high' ? 'bg-red-200 text-red-700' :
@@ -164,10 +207,7 @@ export default function ProjectPage() {
                         }`}>
                           {task.priority}
                         </span>
-                        <div className="flex gap-1 items-center">
-                          {task.assignee_id === user?.id && (
-                            <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">Me</span>
-                          )}
+                        {isAdmin && (
                           <div onClick={(e) => e.stopPropagation()} className="flex gap-1">
                             {status !== 'done' && (
                               <button
@@ -184,7 +224,7 @@ export default function ProjectPage() {
                               ✕
                             </button>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   ))}

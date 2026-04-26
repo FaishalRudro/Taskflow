@@ -32,7 +32,7 @@ export default function MyTasks() {
 
   const fetchMyTasks = async () => {
     try {
-      const res = await api.get('/tasks/my-tasks');
+      const res = await api.get('/my-tasks');
       setTasks(res.data.tasks);
     } catch (err) {
       console.error(err);
