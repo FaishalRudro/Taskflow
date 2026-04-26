@@ -13,6 +13,8 @@ app.use(express.json());
 // Routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
+const workspaceRoutes = require('./routes/workspaces');
+app.use('/api/workspaces', workspaceRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
