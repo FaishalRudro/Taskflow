@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import TaskModal from '../components/TaskModal';
 
 const STATUSES = ['todo', 'in_progress', 'in_review', 'done'];
 const STATUS_LABELS = {
@@ -22,6 +23,7 @@ export default function ProjectPage() {
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' });
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,6 +68,7 @@ export default function ProjectPage() {
     try {
       await api.delete(`/tasks/${taskId}`);
       setTasks(tasks.filter(t => t.id !== taskId));
+      setSelectedTask(null);
     } catch (err) {
       console.error(err);
     }
@@ -94,6 +97,13 @@ export default function ProjectPage() {
             className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          <input
+            type="text"
+            placeholder="Description (optional)"
+            value={newTask.description}
+            onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           <select
             value={newTask.priority}
             onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
@@ -118,11 +128,23 @@ export default function ProjectPage() {
           <div className="grid grid-cols-4 gap-4">
             {STATUSES.map((status) => (
               <div key={status} className="bg-white rounded-xl shadow-sm p-4">
-                <h3 className="font-semibold text-gray-700 mb-3">{STATUS_LABELS[status]}</h3>
+                <h3 className="font-semibold text-gray-700 mb-3">
+                  {STATUS_LABELS[status]}
+                  <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                    {getTasksByStatus(status).length}
+                  </span>
+                </h3>
                 <div className="space-y-2">
                   {getTasksByStatus(status).map((task) => (
-                    <div key={task.id} className={`p-3 rounded-lg ${STATUS_COLORS[status]}`}>
+                    <div
+                      key={task.id}
+                      className={`p-3 rounded-lg ${STATUS_COLORS[status]} cursor-pointer hover:opacity-80`}
+                      onClick={() => setSelectedTask(task)}
+                    >
                       <p className="font-medium text-gray-800 text-sm">{task.title}</p>
+                      {task.description && (
+                        <p className="text-xs text-gray-500 mt-1 truncate">{task.description}</p>
+                      )}
                       <div className="flex justify-between items-center mt-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           task.priority === 'high' ? 'bg-red-200 text-red-700' :
@@ -131,7 +153,7 @@ export default function ProjectPage() {
                         }`}>
                           {task.priority}
                         </span>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                           {status !== 'done' && (
                             <button
                               onClick={() => updateStatus(task.id, STATUSES[STATUSES.indexOf(status) + 1])}
@@ -156,6 +178,17 @@ export default function ProjectPage() {
           </div>
         )}
       </div>
+
+      {selectedTask && (
+        <TaskModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={(updatedTask) => {
+            setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+            setSelectedTask(null);
+          }}
+        />
+      )}
     </div>
   );
 }
